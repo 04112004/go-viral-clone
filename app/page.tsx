@@ -1,65 +1,152 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
 
 export default function Home() {
+  const [content, setContent] = useState("");
+  const [contentType, setContentType] = useState("post");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState("");
+
+  const analyze = async () => {
+    if (!content.trim()) return;
+    setLoading(true);
+    setError("");
+    setResult(null);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, type: contentType }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setResult(data);
+    } catch (e) {
+      setError("Something went wrong. Please try again.");
+    }
+    setLoading(false);
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 70) return "text-green-400";
+    if (score >= 40) return "text-yellow-400";
+    return "text-red-400";
+  };
+
+  const getScoreBg = (score: number) => {
+    if (score >= 70) return "border-green-400";
+    if (score >= 40) return "border-yellow-400";
+    return "border-red-400";
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen bg-gray-950 text-white px-4 py-10">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold mb-2">🚀 Go Viral</h1>
+          <p className="text-gray-400">AI-powered content virality analyzer</p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        {/* Input Section */}
+        <div className="bg-gray-900 rounded-2xl p-6 mb-6">
+          <div className="flex gap-3 mb-4">
+            {["post", "video script", "tweet", "caption"].map((t) => (
+              <button
+                key={t}
+                onClick={() => setContentType(t)}
+                className={`px-3 py-1 rounded-full text-sm capitalize ${
+                  contentType === t
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-800 text-gray-400"
+                }`}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <textarea
+            className="w-full bg-gray-800 rounded-xl p-4 text-white placeholder-gray-500 resize-none outline-none border border-gray-700 focus:border-purple-500"
+            rows={6}
+            placeholder={`Paste your ${contentType} here...`}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          />
+
+          <button
+            onClick={analyze}
+            disabled={loading || !content.trim()}
+            className="w-full mt-4 py-3 rounded-xl font-semibold bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {loading ? "⏳ Analyzing..." : "⚡ Analyze Viral Potential"}
+          </button>
+
+          {error && <p className="text-red-400 text-center mt-3">{error}</p>}
         </div>
-      </main>
-    </div>
+
+        {/* Results Section */}
+        {result && (
+          <div className="bg-gray-900 rounded-2xl p-6 space-y-6">
+            {/* Score */}
+            <div className="flex items-center justify-center">
+              <div className={`border-4 ${getScoreBg(result.score)} rounded-full w-32 h-32 flex flex-col items-center justify-center`}>
+                <span className={`text-4xl font-bold ${getScoreColor(result.score)}`}>
+                  {result.score}
+                </span>
+                <span className="text-gray-400 text-sm">/ 100</span>
+              </div>
+            </div>
+
+            <p className="text-center text-lg font-medium">{result.verdict}</p>
+
+            {/* What Works */}
+            <div>
+              <h3 className="text-green-400 font-semibold mb-3">✅ What Works</h3>
+              <ul className="space-y-2">
+                {result.whatWorks.map((item: string, i: number) => (
+                  <li key={i} className="bg-gray-800 rounded-lg px-4 py-2 text-sm text-gray-300">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Suggestions */}
+            <div>
+              <h3 className="text-yellow-400 font-semibold mb-3">💡 Suggestions to Go Viral</h3>
+              <ul className="space-y-2">
+                {result.suggestions.map((item: string, i: number) => (
+                  <li key={i} className="bg-gray-800 rounded-lg px-4 py-2 text-sm text-gray-300">
+                    {i + 1}. {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Best Platforms */}
+            <div>
+              <h3 className="text-purple-400 font-semibold mb-3">📱 Best Platforms</h3>
+              <div className="flex gap-2">
+                {result.bestPlatforms.map((p: string, i: number) => (
+                  <span key={i} className="bg-purple-900 text-purple-300 px-3 py-1 rounded-full text-sm">
+                    {p}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Try Again */}
+            <button
+              onClick={() => { setResult(null); setContent(""); }}
+              className="w-full py-3 rounded-xl font-semibold bg-gray-800 hover:bg-gray-700 transition"
+            >
+              🔄 Try Another
+            </button>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
