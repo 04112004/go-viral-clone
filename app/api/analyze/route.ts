@@ -9,33 +9,54 @@ export async function POST(request: NextRequest) {
     }
 
     const groq = new Groq({ apiKey });
-    const { content, type } = await request.json();
-
-    // Add randomness seed to force different responses
+    const { content, type, image } = await request.json();
     const seed = Math.floor(Math.random() * 1000);
+
+    const imageContext = image
+      ? "An image/thumbnail was also uploaded with this content."
+      : "No image was uploaded.";
 
     const completion = await groq.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
         {
           role: "system",
-          content: `You are a brutally honest viral content critic. You score content very differently based on quality. Weak content gets 20-40, average gets 41-65, good gets 66-80, exceptional gets 81-100. You NEVER give the same score twice in a row. Session: ${seed}`
+          content: `You are a brutally honest viral content analyst with expertise in TikTok, Instagram, Twitter, and YouTube. You give varied, honest scores. Never default to the same score. Always respond with valid JSON only, no markdown, no backticks. Session: ${seed}`,
         },
         {
           role: "user",
-          content: `Rate this ${type} (${content.length} characters long):
+          content: `Analyze this ${type} content for viral potential:
 
-"${content}"
+Content: "${content}"
+Image context: ${imageContext}
 
-Be CRITICAL. Ask yourself:
-1. Would YOU personally share this? (yes/no)
-2. Have you seen 100 posts like this before? (if yes, score drops 20 points)
-3. Does it have a strong hook in the FIRST sentence? (if no, score drops 15 points)
-4. Does it trigger strong emotion? (if weak emotion, score drops 10 points)
+Be CRITICAL and HONEST. Score based on:
+- Hook strength (first 3 seconds/words)
+- Emotional trigger
+- Shareability
+- Originality
+- Call to action
 
-After your critical analysis, return ONLY this JSON:
-{"score":<integer between 15 and 95>,"verdict":"<brutally honest one sentence>","whatWorks":["<specific thing 1>","<specific thing 2>","<specific thing 3>"],"suggestions":["<very specific fix 1>","<very specific fix 2>","<very specific fix 3>"],"bestPlatforms":["<best platform>","<second platform>"]}`
-        }
+Return ONLY this JSON (no markdown):
+{
+  "score": <integer 15-95>,
+  "verdict": "<one honest sentence>",
+  "breakdown": {
+    "hook_strength": <0-100>,
+    "emotional_impact": <0-100>,
+    "shareability": <0-100>,
+    "originality": <0-100>,
+    "call_to_action": <0-100>
+  },
+  "hookAnalysis": "<specific analysis of the opening hook and first 3 seconds>",
+  "thumbnailRating": "${image ? "<rate the thumbnail: composition, colors, text, click-through potential>" : "No thumbnail uploaded. Recommend uploading a thumbnail for better analysis."}",
+  "whatWorks": ["<specific point 1>", "<specific point 2>", "<specific point 3>"],
+  "suggestions": ["<actionable fix 1>", "<actionable fix 2>", "<actionable fix 3>"],
+  "hashtags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5", "#tag6"],
+  "audioRecommendations": ["<trending sound 1>", "<trending sound 2>", "<trending sound 3>"],
+  "bestPlatforms": ["<platform 1>", "<platform 2>", "<platform 3>"]
+}`,
+        },
       ],
       temperature: 1.2,
       seed: seed,
@@ -44,9 +65,6 @@ After your critical analysis, return ONLY this JSON:
     const text = completion.choices[0].message.content || "";
     const clean = text.replace(/```json|```/g, "").trim();
     const data = JSON.parse(clean);
-
-    // Ensure score variety - if somehow same, adjust slightly
-    data.score = Math.min(95, Math.max(15, data.score));
 
     return NextResponse.json(data);
   } catch (error: any) {

@@ -92,3 +92,32 @@ App now returns varied scores:
 - Tweet (unpopular opinion): 79/100
 - Caption (day 1 journey): 55/100
 All results include specific What Works points, Suggestions, and Best Platforms
+
+---
+
+## Prompt
+The challenge requires video/image upload, hook analysis, thumbnail rating, hashtag recommendations. Add these features to the app.
+
+## Response
+Updated page.tsx to include:
+- Image/thumbnail upload with preview
+- File reader to convert image to base64
+- Remove image button
+
+Updated route.ts to include:
+- Score breakdown with progress bars (hook strength, emotional impact, shareability, originality, call to action)
+- Hook analysis section (first 3 seconds analysis)
+- Thumbnail rating (when image is uploaded)
+- Trending hashtags (6 hashtags)
+- Audio/sound recommendations (3 trending sounds)
+- Best platforms (3 platforms)
+
+## Prompt
+What images can I use to test the app?
+
+## Response
+Recommended using unsplash.com for free test images:
+- startup desk for post content
+- morning productive for video script
+- minimal workspace for tweet/caption
+Tested all 4 content types with different images and got varied scores
